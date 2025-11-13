@@ -1,438 +1,90 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WSA-SOG Mission Statement</title>
-
-    <!-- Load Inter Font from Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
-    <!-- Load Tailwind CSS CDN for styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <style>
-        /* Apply the Inter font to the whole body */
-        body {
-            font-family: 'Inter', sans-serif;
-            /* Ensure the body is black and text is white as per the original design */
-            background-color: black;
-            color: white;
-            min-height: 100vh;
-            scroll-behavior: smooth; /* Added for smooth scrolling */
-        }
-        /* Custom styles to match the original Figma text sizes/weights using Tailwind equivalents */
-        h1 {
-            font-size: 3rem; /* equivalent to tracking-tight in original */
-            line-height: 1;
-            font-weight: 800; /* Extra bold */
-        }
-        h2 {
-            font-size: 2.25rem; /* text-4xl */
-            line-height: 2.5rem;
-            font-weight: 700; /* Bold */
-        }
-        h3 {
-            font-size: 1.5rem; /* text-xl */
-            line-height: 2rem;
-            font-weight: 600; /* Semi-bold */
-        }
-        /* Ensure the link looks like a button */
-        .discord-button {
-            transition: all 0.3s ease;
-        }
-        .discord-button:hover {
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-        }
-
-        /* --------------------------------- */
-        /* SCROLL ANIMATION STYLES (REQUIRED)*/
-        /* --------------------------------- */
-        .scroll-reveal {
-            opacity: 0;
-            transform: translateY(30px); /* Increased Y offset for more dramatic entrance */
-            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-        }
-
-        .scroll-reveal.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        /* Staggered delay for child elements (used on Hero block) */
-        .scroll-reveal.stagger.visible > :nth-child(1) { transition-delay: 0.1s; }
-        .scroll-reveal.stagger.visible > :nth-child(2) { transition-delay: 0.2s; }
-        .scroll-reveal.stagger.visible > :nth-child(3) { transition-delay: 0.3s; }
-        .scroll-reveal.stagger.visible > :nth-child(4) { transition-delay: 0.4s; }
-        .scroll-reveal.stagger.visible > :nth-child(5) { transition-delay: 0.5s; }
-        .scroll-reveal.stagger.visible > :nth-child(6) { transition-delay: 0.6s; }
-
-        /* Detail Drawer Styles */
-        #detail-drawer {
-            transition: transform 0.4s ease-out, opacity 0.4s ease-out;
-            transform: translateY(100%);
-            opacity: 0;
-            pointer-events: none;
-        }
-        #detail-drawer.open {
-            transform: translateY(0);
-            opacity: 1;
-            pointer-events: auto;
-        }
-        /* Style for the clickable card to show it's interactive */
-        .card-link:hover {
-            transform: translateY(-4px) scale(1.01);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-        }
-    </style>
+  <meta charset="utf-8">
+  <title>Clients Dashboard</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding:20px }
+    table { border-collapse: collapse; width: 100%; max-width:800px }
+    th,td { border:1px solid #ddd; padding:8px; text-align:left }
+    th { background:#f2f2f2 }
+    .offline { color: #999 }
+  </style>
 </head>
 <body>
+  <h2>Connected Clients</h2>
+  <p>Auto-scans the Realtime DB and shows clients with a recent heartbeat (last 40s).</p>
+  <table id="tbl">
+    <thead><tr><th>Device ID</th><th>Hostname</th><th>Platform</th><th>Last heartbeat (UTC)</th><th>Status</th></tr></thead>
+    <tbody id="rows"><tr><td colspan="5">Loading…</td></tr></tbody>
+  </table>
 
-    <main class="min-h-screen bg-black text-white">
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
-        <!-- Hero Section -->
-        <section class="relative min-h-screen flex items-center justify-center px-4 py-20">
-            <div class="absolute inset-0 bg-gradient-to-b from-black via-black to-zinc-950"></div>
-            <div class="relative z-10 max-w-5xl mx-auto text-center scroll-reveal stagger hero-content" data-animate="true">
-                <div class="flex items-center justify-center mb-8">
-                    <!-- Shield Icon (Lucide) -->
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shield w-24 h-24 text-white" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path></svg>
-                </div>
-                <!-- Title Block -->
-                <h1 class="mb-6 tracking-tight">
-                    <span class="block text-white">WSA-SOG</span>
-                    <span class="block text-zinc-400 mt-4 text-3xl">Wolf Security Agency</span>
-                    <span class="block text-zinc-400 text-3xl">Special Operations Group</span>
-                </h1>
-                <div class="w-24 h-1 bg-white mx-auto mb-8"></div>
-                <!-- Mission Statement -->
-                <p class="text-xl text-zinc-300 max-w-3xl mx-auto leading-relaxed">We
-                    are hacktivists fighting for the digital and physical rights of people.
-                    No matter the place or governing body, we will act. We will protect
-                    everybody who supports basic human rights.
-                </p>
-            </div>
-            <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-zinc-700 to-transparent"></div>
-        </section>
+  <script>
+    // ======= PASTE YOUR FIREBASE CONFIG HERE =======
+    // Replace the object below with your web app config from Firebase console
+    const firebaseConfig = {
+      apiKey: "PASTE_API_KEY",
+      authDomain: "PROJECT.firebaseapp.com",
+      databaseURL: "https://PROJECT.firebaseio.com",
+      projectId: "PROJECT",
+      storageBucket: "PROJECT.appspot.com",
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
+    };
+    // ===============================================
 
-        <!-- Our Mission Section -->
-        <section class="relative py-24 px-4">
-            <div class="max-w-6xl mx-auto">
-                <div class="text-center mb-16 scroll-reveal" data-animate="true">
-                    <h2 class="mb-4 text-white">Our Mission</h2>
-                    <p class="text-zinc-400 max-w-2xl mx-auto text-lg">Standing firm in defense of freedom, rights, and justice for all</p>
-                </div>
-                <div class="grid md:grid-cols-3 gap-8">
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-                    <!-- Digital Rights Card (Clickable with Data) -->
-                    <div data-animate="true" data-title="Digital Rights Deep Dive" data-detail="The core of our operational philosophy lies in defending the digital sovereignty of the individual. This mandate extends to combating state surveillance, neutralizing corporate data exploitation, and ensuring unimpeded access to information. We achieve this through aggressive counter-cyber measures and the development of secure, decentralized infrastructures for resistance movements globally." class="card-link cursor-pointer border border-zinc-800 bg-zinc-950 p-8 rounded-lg hover:border-zinc-600 transition-colors scroll-reveal" onclick="openDrawer(this)">
-                        <div class="flex justify-center mb-6">
-                            <!-- Target Icon (Lucide) -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-target w-12 h-12 text-white" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
-                        </div>
-                        <h3 class="text-center mb-4 text-white">Digital Rights</h3>
-                        <p class="text-zinc-400 text-center leading-relaxed">Protecting privacy, freedom of information, and digital autonomy in an increasingly surveilled world.</p>
-                        <div class="mt-4 text-center text-zinc-500 text-xs font-medium uppercase tracking-wider">Read Deeper &rarr;</div>
-                    </div>
+    const rowsEl = document.getElementById('rows');
+    const HEARTBEAT_WINDOW_SEC = 40; // consider clients online within last 40s
 
-                    <!-- Physical Rights Card (Clickable with Data) -->
-                    <div data-animate="true" data-title="Physical Rights Deep Dive" data-detail="Our scope is not limited to the wire. We coordinate intelligence, logistics, and digital support for groups fighting for physical rights on the ground. When lives are at stake due to government overreach or human rights violations, we leverage our assets to create necessary political pressure, expose atrocities, and facilitate safe passages for those targeted by oppressive regimes." class="card-link cursor-pointer border border-zinc-800 bg-zinc-950 p-8 rounded-lg hover:border-zinc-600 transition-colors scroll-reveal" onclick="openDrawer(this)">
-                        <div class="flex justify-center mb-6">
-                            <!-- Globe Icon (Lucide) -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-globe w-12 h-12 text-white" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
-                        </div>
-                        <h3 class="text-center mb-4 text-white">Physical Rights</h3>
-                        <p class="text-zinc-400 text-center leading-relaxed">Defending the fundamental human rights to live freely, safely, and without oppression.</p>
-                        <div class="mt-4 text-center text-zinc-500 text-xs font-medium uppercase tracking-wider">Read Deeper &rarr;</div>
-                    </div>
+    function render(clients) {
+      const now = Date.now();
+      if (!clients) {
+        rowsEl.innerHTML = '<tr><td colspan="5">No clients</td></tr>';
+        return;
+      }
+      const keys = Object.keys(clients).sort();
+      if (!keys.length) {
+        rowsEl.innerHTML = '<tr><td colspan="5">No clients</td></tr>';
+        return;
+      }
+      rowsEl.innerHTML = '';
+      for (const id of keys) {
+        const c = clients[id] || {};
+        const ts = c.last_heartbeat || 0;
+        const age = (now - ts) / 1000.0;
+        const online = age <= HEARTBEAT_WINDOW_SEC;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(id)}</td>
+          <td>${escapeHtml(c.hostname || '')}</td>
+          <td>${escapeHtml(c.platform || '')}</td>
+          <td>${ts ? new Date(ts).toISOString() : ''}</td>
+          <td class="${online ? '' : 'offline'}">${online ? 'online' : 'offline'}</td>
+        `;
+        rowsEl.appendChild(tr);
+      }
+    }
 
-                    <!-- For The People Card (Clickable with Data) -->
-                    <div data-animate="true" data-title="Sovereignty of the Citizen Deep Dive" data-detail="We operate solely for the benefit of the average citizen who upholds fundamental human rights. We are antithetical to state power and corporate tyranny. Our loyalty is not to flags or borders, but to the global collective resisting oppression. Every action is calculated to empower the many against the arbitrary power of the few." class="card-link cursor-pointer border border-zinc-800 bg-zinc-950 p-8 rounded-lg hover:border-zinc-600 transition-colors scroll-reveal" onclick="openDrawer(this)">
-                        <div class="flex justify-center mb-6">
-                            <!-- Users Icon (Lucide) -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users w-12 h-12 text-white" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>
-                        </div>
-                        <h3 class="text-center mb-4 text-white">For The People</h3>
-                        <p class="text-zinc-400 text-center leading-relaxed">We arm ourselves for the people, because it is their right to live freely and without fear.</p>
-                        <div class="mt-4 text-center text-zinc-500 text-xs font-medium uppercase tracking-wider">Read Deeper &rarr;</div>
-                    </div>
+    // helper
+    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
 
-                </div>
-            </div>
-        </section>
+    // Read full clients subtree and re-render on changes
+    const clientsRef = db.ref('clients');
+    clientsRef.on('value', snapshot => {
+      render(snapshot.val());
+    });
 
-        <!-- No Matter The People Section -->
-        <section class="relative py-24 px-4 bg-black">
-            <div class="max-w-6xl mx-auto">
-                <div class="text-center mb-16 scroll-reveal" data-animate="true">
-                    <h2 class="mb-4 text-white">No Matter The People, We Will Act</h2>
-                    <p class="text-zinc-300 max-w-3xl mx-auto text-xl leading-relaxed">Our
-                        protection extends to all who support basic human rights. We stand with
-                        marginalized communities, oppressed peoples, and anyone fighting for
-                        freedom and equality.
-                    </p>
-                </div>
-                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+    // Optional: poll every 10s to update status coloring (in case timestamps age)
+    setInterval(()=> {
+      clientsRef.once('value').then(snap => render(snap.val()));
+    }, 10000);
 
-                    <!-- LGBTQIA+ Card -->
-                    <div class="border border-zinc-800 bg-zinc-950 p-6 rounded-lg hover:border-white/20 transition-colors scroll-reveal" data-animate="true">
-                        <div class="flex justify-center mb-4">
-                            <!-- Heart Icon (Lucide) -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart w-10 h-10 text-white" aria-hidden="true"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"></path></svg>
-                        </div>
-                        <h3 class="text-center mb-3 text-white">LGBTQIA+</h3>
-                        <p class="text-zinc-400 text-center text-sm leading-relaxed">Defending the rights of LGBTQIA+ individuals to exist freely and safely without discrimination or persecution.</p>
-                    </div>
-
-                    <!-- Minorities Card -->
-                    <div class="border border-zinc-800 bg-zinc-950 p-6 rounded-lg hover:border-white/20 transition-colors scroll-reveal" data-animate="true">
-                        <div class="flex justify-center mb-4">
-                            <!-- Users Icon (Lucide) -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users w-10 h-10 text-white" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>
-                        </div>
-                        <h3 class="text-center mb-3 text-white">Minorities</h3>
-                        <p class="text-zinc-400 text-center text-sm leading-relaxed">Protecting racial, ethnic, and religious minorities from oppression and systemic injustice.</p>
-                    </div>
-
-                    <!-- Activists Card -->
-                    <div class="border border-zinc-800 bg-zinc-950 p-6 rounded-lg hover:border-white/20 transition-colors scroll-reveal" data-animate="true">
-                        <div class="flex justify-center mb-4">
-                            <!-- Megaphone Icon (Lucide) -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-megaphone w-10 h-10 text-white" aria-hidden="true"><path d="M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"></path><path d="M6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14"></path><path d="M8 6v8"></path></svg>
-                        </div>
-                        <h3 class="text-center mb-3 text-white">Activists</h3>
-                        <p class="text-zinc-400 text-center text-sm leading-relaxed">Supporting whistleblowers, journalists, and activists who risk everything to expose truth and corruption.</p>
-                    </div>
-
-                    <!-- All People Card -->
-                    <div class="border border-zinc-800 bg-zinc-950 p-6 rounded-lg hover:border-white/20 transition-colors scroll-reveal" data-animate="true">
-                        <div class="flex justify-center mb-4">
-                            <!-- Flag Icon (Lucide) -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-flag w-10 h-10 text-white" aria-hidden="true"><path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528"></path></svg>
-                        </div>
-                        <h3 class="text-center mb-3 text-white">All People</h3>
-                        <p class="text-zinc-400 text-center text-sm leading-relaxed">Anyone whose basic human rights are threatened—we stand with you, regardless of borders or governments.</p>
-                    </div>
-                </div>
-
-                <div class="mt-12 p-8 border border-zinc-800 bg-zinc-950/50 max-w-3xl mx-auto rounded-lg scroll-reveal" data-animate="true">
-                    <p class="text-zinc-300 text-center text-lg leading-relaxed"><span class="text-white">No exceptions. No compromise.</span>
-                        We defend the vulnerable, the persecuted, and the silenced. Where
-                        governments fail, where systems oppress, where rights are denied—we act.
-                    </p>
-                </div>
-            </div>
-        </section>
-
-        <!-- What We Stand Against Section -->
-        <section class="relative py-24 px-4 bg-zinc-950">
-            <div class="max-w-6xl mx-auto">
-                <div class="text-center mb-16 scroll-reveal" data-animate="true">
-                    <h2 class="mb-4 text-white">What We Stand Against</h2>
-                    <p class="text-zinc-400 max-w-2xl mx-auto text-lg">We will not tolerate oppression, corruption, or authoritarianism</p>
-                </div>
-
-                <div class="grid md:grid-cols-2 gap-8 mb-16">
-
-                    <!-- Anti-Fascism Card -->
-                    <div class="border border-red-900/30 bg-black p-8 rounded-lg scroll-reveal" data-animate="true">
-                        <div class="flex items-start gap-4">
-                            <!-- Ban Icon (Lucide) -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ban w-10 h-10 text-red-500 flex-shrink-0 mt-1" aria-hidden="true"><path d="M4.929 4.929 19.07 19.071"></path><circle cx="12" cy="12" r="10"></circle></svg>
-                            <div>
-                                <h3 class="mb-3 text-white">Anti-Fascism</h3>
-                                <p class="text-zinc-400 leading-relaxed">We stand firmly against fascism and authoritarian regimes that seek to strip people of their fundamental rights and freedoms.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Anti-Corruption Card -->
-                    <div class="border border-red-900/30 bg-black p-8 rounded-lg scroll-reveal" data-animate="true">
-                        <div class="flex items-start gap-4">
-                            <!-- Triangle Alert Icon (Lucide) -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-triangle-alert w-10 h-10 text-red-500 flex-shrink-0 mt-1" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
-                            <div>
-                                <h3 class="mb-3 text-white">Anti-Corruption</h3>
-                                <p class="text-zinc-400 leading-relaxed">We oppose corrupt politicians and systems that prioritize power and profit over the wellbeing and rights of the people.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-
-                <div class="border-t border-zinc-800 pt-16">
-                    <div class="text-center max-w-3xl mx-auto scroll-reveal" data-animate="true">
-                        <div class="flex justify-center mb-6">
-                            <!-- Hand Heart Icon (Lucide) -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-hand-heart w-16 h-16 text-white" aria-hidden="true"><path d="M11 14h2a2 2 0 0 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 16"></path><path d="m14.45 13.39 5.05-4.694C20.196 8 21 6.85 21 5.75a2.75 2.75 0 0 0-4.797-1.837.276.276 0 0 1-.406 0A2.75 2.75 0 0 0 11 5.75c0 1.2.802 2.248 1.5 2.946L16 11.95"></path><path d="m2 15 6 6"></path><path d="m7 20 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a1 1 0 0 0-2.75-2.91"></path></svg>
-                        </div>
-                        <h3 class="mb-4 text-white">For Basic Human Rights</h3>
-                        <p class="text-zinc-300 text-lg leading-relaxed">We
-                            protect and fight for those who believe in and support basic human
-                            rights. Our mission transcends borders, governments, and jurisdictions.
-                            Where there is oppression, we will be there. Where there is injustice,
-                            we will act.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Call to Action / Footer Section -->
-        <section class="relative py-24 px-4">
-            <div class="max-w-4xl mx-auto text-center">
-
-                <!-- Discord CTA Block -->
-                <div class="mb-20 pb-20 border-b border-zinc-800 scroll-reveal" data-animate="true">
-                    <div class="flex justify-center mb-6">
-                        <!-- Message Square Icon (Lucide) -->
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square w-16 h-16 text-white" aria-hidden="true"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"></path></svg>
-                    </div>
-                    <h2 class="mb-6 text-white">Join Our Discord Vigilante Hacking Group</h2>
-                    <p class="text-zinc-300 text-xl leading-relaxed max-w-3xl mx-auto mb-8">We
-                        are a collective of digital warriors operating through our secure
-                        Discord server. If you believe in our cause and want to contribute to
-                        the fight for digital and physical rights, join us.
-                    </p>
-                    <a href="https://discord.gg/kMU47YFzqu" target="_blank" rel="noopener noreferrer" class="discord-button inline-block px-8 py-4 bg-white text-black hover:bg-zinc-200 transition-colors border-2 border-white font-semibold rounded-lg">Join Discord Server</a>
-                    <p class="text-zinc-500 mt-6 text-sm">By joining, you agree to uphold our values and mission</p>
-                </div>
-
-                <!-- Closing Statement -->
-                <div class="mb-12 scroll-reveal" data-animate="true">
-                    <h2 class="mb-6 text-white">We Are Watching. We Are Acting.</h2>
-                    <p class="text-zinc-300 text-xl leading-relaxed max-w-3xl mx-auto">In
-                        the digital age, freedom must be defended both online and offline. We
-                        stand with those who fight for justice, transparency, and the right to
-                        live freely.
-                    </p>
-                </div>
-
-                <!-- Footer Icons -->
-                <div class="grid md:grid-cols-3 gap-6 mt-16 scroll-reveal" data-animate="true">
-
-                    <div class="p-6 border border-zinc-800 bg-zinc-950/50 rounded-lg">
-                        <!-- Shield Icon (Lucide) -->
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shield w-8 h-8 text-zinc-400 mx-auto mb-3" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path></svg>
-                        <p class="text-zinc-400">Protected</p>
-                    </div>
-
-                    <div class="p-6 border border-zinc-800 bg-zinc-950/50 rounded-lg">
-                        <!-- Lock Icon (Lucide) -->
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-lock w-8 h-8 text-zinc-400 mx-auto mb-3" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                        <p class="text-zinc-400">Secure</p>
-                    </div>
-
-                    <div class="p-6 border border-zinc-800 bg-zinc-950/50 rounded-lg">
-                        <!-- Eye Icon (Lucide) -->
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye w-8 h-8 text-zinc-400 mx-auto mb-3" aria-hidden="true"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                        <p class="text-zinc-400">Vigilant</p>
-                    </div>
-
-                </div>
-
-                <!-- Copyright -->
-                <div class="mt-16 pt-16 border-t border-zinc-800">
-                    <p class="text-zinc-500 text-sm tracking-wider">WSA-SOG © 2025 • WOLF SECURITY AGENCY SPECIAL OPERATIONS GROUP</p>
-                </div>
-
-            </div>
-        </section>
-
-    </main>
-
-    <!-- Detail Drawer/Modal Component -->
-    <div id="detail-drawer" class="fixed bottom-0 left-0 right-0 h-1/2 md:h-2/5 bg-zinc-900 border-t-4 border-white/50 shadow-2xl p-6 md:p-10 z-[100]">
-        <div class="max-w-4xl mx-auto h-full flex flex-col">
-            <h3 id="drawer-title" class="text-3xl font-bold mb-4 text-white"></h3>
-            <div class="flex-grow overflow-y-auto pr-4">
-                <p id="drawer-detail" class="text-zinc-300 text-lg leading-relaxed"></p>
-            </div>
-            <div class="mt-6 flex justify-end">
-                <button onclick="closeDrawer()" class="px-6 py-3 bg-white text-black rounded-full font-semibold hover:bg-zinc-300 transition-colors text-sm">
-                    Close Details
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Script Block for Animations and Drawer -->
-    <script>
-        // ---------------------------------
-        // JAVASCRIPT FOR INTERACTIVITY
-        // ---------------------------------
-
-        /**
-         * 1. Scroll-Reveal Animations (Intersection Observer)
-         */
-        document.addEventListener('DOMContentLoaded', () => {
-            // Setup Intersection Observer
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('visible');
-                        // Stop observing once visible to prevent re-triggering
-                        observer.unobserve(entry.target);
-                    }
-                });
-            }, {
-                root: null, // relative to the viewport
-                rootMargin: '0px',
-                threshold: 0.1 // trigger when 10% of the item is visible
-            });
-
-            // Find all elements marked for animation
-            document.querySelectorAll('.scroll-reveal[data-animate="true"]').forEach(element => {
-                observer.observe(element);
-            });
-
-            // Handle Hero section specifically to start immediately
-            const heroElement = document.querySelector('.hero-content.scroll-reveal');
-            if (heroElement) {
-                heroElement.classList.add('visible');
-            }
-        });
-
-
-        /**
-         * 2. Detail Drawer (Read More) Functionality
-         */
-        const drawer = document.getElementById('detail-drawer');
-        const drawerTitle = document.getElementById('drawer-title');
-        const drawerDetail = document.getElementById('drawer-detail');
-
-        /**
-         * Opens the detail drawer and populates it with content from the clicked element.
-         * @param {HTMLElement} element - The card element that was clicked.
-         */
-        function openDrawer(element) {
-            const title = element.getAttribute('data-title');
-            const detail = element.getAttribute('data-detail');
-
-            if (title && detail) {
-                drawerTitle.textContent = title;
-                drawerDetail.textContent = detail;
-                drawer.classList.add('open');
-                // Prevent scrolling the background
-                document.body.style.overflow = 'hidden';
-            }
-        }
-
-        /**
-         * Closes the detail drawer.
-         */
-        function closeDrawer() {
-            drawer.classList.remove('open');
-            // Restore background scrolling
-            document.body.style.overflow = '';
-        }
-
-        // Close drawer if escape key is pressed
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && drawer.classList.contains('open')) {
-                closeDrawer();
-            }
-        });
-
-    </script>
+  </script>
 </body>
 </html>
